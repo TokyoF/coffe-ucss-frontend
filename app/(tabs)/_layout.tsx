@@ -1,59 +1,112 @@
-import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
-
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
+// app/(tabs)/_layout.tsx
+import React from "react";
+import { Text, StyleSheet } from "react-native";
+import { Tabs } from "expo-router";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
+        tabBarActiveTintColor: "#D2691E", // Naranja cuando está activo
+        tabBarInactiveTintColor: "#888", // Gris cuando está inactivo
+        headerShown: false, // Sin header en las tabs
+        tabBarStyle: {
+          backgroundColor: "#2C2C2C", // Fondo oscuro del tab bar
+          borderTopWidth: 0, // Sin borde superior
+          paddingBottom: 8, // Espaciado inferior
+          paddingTop: 8, // Espaciado superior
+          height: 70, // Altura del tab bar
+        },
+        tabBarShowLabel: false, // ✅ ARREGLADO: Ocultar labels correctamente
+      }}
+    >
+      {/* Tab 1: Home (Dashboard) */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
+          title: "Home",
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="home" color={color} focused={focused} />
           ),
         }}
       />
+
       <Tabs.Screen
-        name="two"
+        name="favorites"
         options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          title: "Favorites",
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="heart" color={color} focused={focused} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="cart"
+        options={{
+          title: "Cart",
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="shopping-bag" color={color} focused={focused} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: "Notifications",
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="bell" color={color} focused={focused} />
+          ),
         }}
       />
     </Tabs>
   );
 }
+
+// Componente para los íconos de tabs
+function TabIcon({
+  name,
+  color,
+  focused,
+}: {
+  name: string;
+  color: string;
+  focused: boolean;
+}) {
+  const getIconText = (iconName: string) => {
+    switch (iconName) {
+      case "home":
+        return "🏠";
+      case "heart":
+        return "🤍";
+      case "shopping-bag":
+        return "🛍️";
+      case "bell":
+        return "🔔";
+      default:
+        return "●";
+    }
+  };
+
+  return (
+    <Text
+      style={[
+        styles.tabIcon,
+        {
+          color: color,
+          fontSize: focused ? 24 : 22, // ✅ ARREGLADO: Tamaños válidos
+          opacity: focused ? 1 : 0.7,
+        },
+      ]}
+    >
+      {getIconText(name)}
+    </Text>
+  );
+}
+
+const styles = StyleSheet.create({
+  tabIcon: {
+    textAlign: "center",
+  },
+});
