@@ -1,4 +1,4 @@
-// app/(tabs)/_layout.tsx
+// app/(tabs)/_layout.tsx - Con Profile Tab agregado
 import React from "react";
 import { Text, StyleSheet } from "react-native";
 import { Tabs } from "expo-router";
@@ -17,7 +17,7 @@ export default function TabLayout() {
           paddingTop: 8, // Espaciado superior
           height: 70, // Altura del tab bar
         },
-        tabBarShowLabel: false, // ✅ ARREGLADO: Ocultar labels correctamente
+        tabBarShowLabel: false, // Ocultar labels correctamente
       }}
     >
       {/* Tab 1: Home (Dashboard) */}
@@ -31,6 +31,18 @@ export default function TabLayout() {
         }}
       />
 
+      {/* Tab 2: Search */}
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: "Search",
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="search" color={color} focused={focused} />
+          ),
+        }}
+      />
+
+      {/* Tab 3: Favorites */}
       <Tabs.Screen
         name="favorites"
         options={{
@@ -41,6 +53,7 @@ export default function TabLayout() {
         }}
       />
 
+      {/* Tab 4: Cart */}
       <Tabs.Screen
         name="cart"
         options={{
@@ -51,12 +64,24 @@ export default function TabLayout() {
         }}
       />
 
+      {/* Tab 5: Notifications */}
       <Tabs.Screen
-        name="notifications"
+        name="notification"
         options={{
           title: "Notifications",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name="bell" color={color} focused={focused} />
+          ),
+        }}
+      />
+
+      {/* ✅ Tab 6: Profile - AGREGADO */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="profile" color={color} focused={focused} />
           ),
         }}
       />
@@ -78,12 +103,16 @@ function TabIcon({
     switch (iconName) {
       case "home":
         return "🏠";
+      case "search":
+        return "🔍";
       case "heart":
         return "🤍";
       case "shopping-bag":
         return "🛍️";
       case "bell":
         return "🔔";
+      case "profile":
+        return "👤";
       default:
         return "●";
     }
@@ -95,7 +124,7 @@ function TabIcon({
         styles.tabIcon,
         {
           color: color,
-          fontSize: focused ? 24 : 22, // ✅ ARREGLADO: Tamaños válidos
+          fontSize: focused ? 24 : 22,
           opacity: focused ? 1 : 0.7,
         },
       ]}

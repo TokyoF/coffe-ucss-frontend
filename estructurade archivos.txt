@@ -1,0 +1,4 @@
+#system:`dir /b /s ..\coffe-ucss-backend | findstr /v node_modules | findstr /v ".git"`
+
+#system:`dir /b /s ..\coffe-ucss-frontend | findstr /v node_modules | findstr /v ".git"`
+

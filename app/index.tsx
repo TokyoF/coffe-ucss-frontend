@@ -1,4 +1,4 @@
-// app/index.tsx - Pantalla de Bienvenida
+// app/index.tsx - Welcome Screen simplificado (AuthGuard maneja la lógica)
 import React from "react";
 import {
   View,
@@ -13,9 +13,8 @@ import { router } from "expo-router";
 
 export default function WelcomeScreen() {
   const handleGetStarted = () => {
-    // Navegar a la pantalla de autenticación
-    // router.push("/(auth)/login");
-    router.push("/(tabs)");
+    // Navegar a la pantalla de login
+    router.push("/(auth)/login");
   };
 
   return (
@@ -28,7 +27,7 @@ export default function WelcomeScreen() {
 
       {/* Imagen de fondo */}
       <ImageBackground
-        source={require("../assets/images/Bg5.jpg")} // ✅ Usar require()
+        source={require("../assets/images/Bg5.jpg")}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
@@ -40,7 +39,7 @@ export default function WelcomeScreen() {
           {/* Logo */}
           <View style={styles.logoContainer}>
             <Image
-              source={require("../assets/images/Logo 3.png")} // ✅ Usar require()
+              source={require("../assets/images/Logo 3.png")}
               style={styles.logo}
               resizeMode="contain"
             />
@@ -70,6 +69,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+  },
   backgroundImage: {
     flex: 1,
     width: "100%",
@@ -92,7 +94,6 @@ const styles = StyleSheet.create({
   logo: {
     width: 200,
     height: 120,
-    // El logo se ajustará automáticamente
   },
   spacer: {
     flex: 1,
@@ -134,27 +135,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
+
+  // ✅ NUEVOS ESTILOS PARA LOADING
+  loadingContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 30,
+  },
+  loader: {
+    marginTop: 30,
+    marginBottom: 20,
+  },
+  loadingText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "500",
+    textAlign: "center",
+  },
 });
-
-// constants/Colors.ts - Actualización de colores
-export const Colors = {
-  // Colores principales basados en el diseño
-  primary: "#D2691E", // Naranja principal del botón
-  primaryDark: "#B8860B", // Naranja más oscuro
-  secondary: "#8B4513", // Marrón secondary
-  background: "#F5F5DC", // Beige claro
-  surface: "#FFFFFF", // Blanco
-  text: "#2F4F4F", // Gris oscuro
-  textSecondary: "#696969", // Gris medio
-  textLight: "#FFFFFF", // Texto claro
-
-  // Estados
-  success: "#32CD32",
-  warning: "#FFD700",
-  error: "#DC143C",
-
-  // Transparencias
-  overlay: "rgba(0, 0, 0, 0.3)",
-  cardShadow: "rgba(0, 0, 0, 0.1)",
-  buttonShadow: "rgba(0, 0, 0, 0.3)",
-};
