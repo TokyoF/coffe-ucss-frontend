@@ -30,14 +30,13 @@ export default function TabLayout() {
           ),
         }}
       />
-
-      {/* Tab 2: Search */}
+      {/*Tab 2: Orders*/}
       <Tabs.Screen
-        name="search"
+        name="orders"
         options={{
-          title: "Search",
+          title: "Pedidos",
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="search" color={color} focused={focused} />
+            <TabIcon name="orders" color={color} focused={focused} />
           ),
         }}
       />
@@ -103,8 +102,8 @@ function TabIcon({
     switch (iconName) {
       case "home":
         return "🏠";
-      case "search":
-        return "🔍";
+      case "orders":
+        return "📦";
       case "heart":
         return "🤍";
       case "shopping-bag":

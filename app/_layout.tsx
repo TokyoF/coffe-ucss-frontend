@@ -11,8 +11,9 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
 
-// ✅ IMPORTAR AuthProvider
+// ✅ IMPORTAR CONTEXTOS
 import { AuthProvider } from "../src/context/AuthContext";
+import { CartProvider } from "../src/context/CartContext"; // ✅ NUEVO
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -46,9 +47,11 @@ export default function RootLayout() {
   }
 
   return (
-    // ✅ WRAPPER CON AuthProvider para estado global
+    // ✅ WRAPPER CON AMBOS PROVIDERS - AuthProvider envuelve CartProvider
     <AuthProvider>
-      <RootLayoutNav />
+      <CartProvider>
+        <RootLayoutNav />
+      </CartProvider>
     </AuthProvider>
   );
 }
