@@ -205,31 +205,31 @@ export default function DashboardScreen() {
   };
 
   // ✅ NUEVA FUNCIÓN: Agregar al carrito con Context
-  const handleAddToCart = async (product: Product) => {
-    try {
-      console.log("🛒 Adding to cart:", product.name);
-
-      const success = await addItem(product.id, 1);
-
-      if (success) {
-        Alert.alert(
-          "Agregado al carrito",
-          `${product.name} se agregó exitosamente`,
-          [
-            { text: "Continuar", style: "default" },
-            {
-              text: "Ver carrito",
-              style: "default",
-              onPress: () => router.push("/(tabs)/cart"),
-            },
-          ],
-        );
-      }
-    } catch (error) {
-      console.error("❌ Error adding to cart:", error);
-      Alert.alert("Error", "No se pudo agregar el producto al carrito");
-    }
-  };
+  // const handleAddToCart = async (product: Product) => {
+  //   try {
+  //     console.log("🛒 Adding to cart:", product.name);
+  //
+  //     const success = await addItem(product.id, 1);
+  //
+  //     if (success) {
+  //       Alert.alert(
+  //         "Agregado al carrito",
+  //         `${product.name} se agregó exitosamente`,
+  //         [
+  //           { text: "Continuar", style: "default" },
+  //           {
+  //             text: "Ver carrito",
+  //             style: "default",
+  //             onPress: () => router.push("/(tabs)/cart"),
+  //           },
+  //         ],
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error("❌ Error adding to cart:", error);
+  //     Alert.alert("Error", "No se pudo agregar el producto al carrito");
+  //   }
+  // };
 
   // ========================================
   // FUNCIONES DE UTILIDAD
@@ -522,7 +522,7 @@ export default function DashboardScreen() {
                               getItemQuantity(product.id) > 0 &&
                                 styles.addButtonActive,
                             ]}
-                            onPress={() => handleAddToCart(product)}
+                            onPress={() => handleProductPress(product.id)}
                           >
                             {getItemQuantity(product.id) > 0 ? (
                               <View style={styles.addButtonContent}>

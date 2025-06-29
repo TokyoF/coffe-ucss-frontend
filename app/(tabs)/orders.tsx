@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { useFocusEffect } from "@react-navigation/native";
 
 // ✅ IMPORTAR servicios y contextos
 import { useAuth } from "../../src/context/AuthContext";
@@ -134,6 +135,16 @@ export default function OrdersScreen() {
       loadOrders();
     }
   }, [isAuthenticated]);
+
+  // ✅ NUEVO: Recargar cada vez que la pantalla se enfoca
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isAuthenticated) {
+        console.log("🔄 Orders screen focused - reloading orders...");
+        loadOrders();
+      }
+    }, [isAuthenticated]),
+  );
 
   useEffect(() => {
     filterOrders();
@@ -276,7 +287,46 @@ export default function OrdersScreen() {
     return "Calculando...";
   };
 
-  // ========================================
+  // ====================================
+  // FORMATEO DE PERSONALIZACION
+  // ====================================
+  const formatCustomizations = (customizations: any): string => {
+    try {
+      if (!customizations) {
+        return "Sin personalizaciones";
+      }
+
+      // Si es string, intentar parsear
+      let customizationObj = customizations;
+      if (typeof customizations === "string") {
+        customizationObj = JSON.parse(customizations);
+      }
+
+      if (!customizationObj || typeof customizationObj !== "object") {
+        return "Sin personalizaciones";
+      }
+
+      const parts: string[] = [];
+      const orderedKeys = ["size", "milk", "sugar", "temperature"];
+
+      orderedKeys.forEach((key) => {
+        if (customizationObj[key]) {
+          parts.push(String(customizationObj[key]));
+        }
+      });
+
+      Object.keys(customizationObj).forEach((key) => {
+        if (!orderedKeys.includes(key) && customizationObj[key]) {
+          parts.push(String(customizationObj[key]));
+        }
+      });
+
+      return parts.length > 0 ? parts.join(" + ") : "Sin personalizaciones";
+    } catch (error) {
+      console.warn("Error formatting customizations:", error);
+      return "Sin personalizaciones";
+    }
+  }; // ========================================
   // COMPONENTE DE IMAGEN
   // ========================================
 
@@ -357,10 +407,34 @@ export default function OrdersScreen() {
                 <Text style={styles.itemQuantity}>
                   Cantidad: {item.quantity}
                 </Text>
-                {item.customizations && (
-                  <Text style={styles.itemCustomizations} numberOfLines={1}>
-                    {JSON.stringify(item.customizations)}
-                  </Text>
+                {/* Personalizaciones detalladas - VERSIÓN SEGURA */}
+                {item.customizations &&
+                  (() => {
+                    const customizationText = formatCustomizations(
+                      item.customizations,
+                    );
+                    return customizationText !== "Sin personalizaciones" ? (
+                      <View style={styles.customizationsContainer}>
+                        <Text style={styles.customizationsLabel}>
+                          Personalización:
+                        </Text>
+                        <Text
+                          style={styles.customizationsText}
+                          numberOfLines={2}
+                        >
+                          {customizationText}
+                        </Text>
+                      </View>
+                    ) : null;
+                  })()}
+                {/* Notas especiales */}
+                {item.specialNotes && (
+                  <View style={styles.notesContainer}>
+                    <Text style={styles.notesLabel}>Nota:</Text>
+                    <Text style={styles.notesText} numberOfLines={1}>
+                      {item.specialNotes}
+                    </Text>
+                  </View>
                 )}
               </View>
               <Text style={styles.itemPrice}>{formatPrice(item.subtotal)}</Text>
@@ -701,7 +775,44 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 4,
   },
+  // Customizations mejoradas
+  customizationsContainer: {
+    backgroundColor: "#2A2A2A",
+    padding: 6,
+    borderRadius: 6,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  customizationsLabel: {
+    color: "#D2691E",
+    fontSize: 10,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  customizationsText: {
+    color: "#FFF",
+    fontSize: 11,
+    lineHeight: 14,
+  },
 
+  // Notes
+  notesContainer: {
+    backgroundColor: "#2A2A2A",
+    padding: 6,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  notesLabel: {
+    color: "#D2691E",
+    fontSize: 10,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  notesText: {
+    color: "#FFF",
+    fontSize: 11,
+    fontStyle: "italic",
+  },
   // Order Footer
   orderFooter: {
     flexDirection: "row",

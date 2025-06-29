@@ -1,226 +1,633 @@
 // app/(tabs)/notifications.tsx
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
-  StatusBar,
+  RefreshControl,
+  Alert,
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { apiClient, API_ENDPOINTS } from "../../src/services/api";
+
+// ========================================
+// TIPOS DE DATOS
+// ========================================
+
+interface Order {
+  id: number;
+  status: string;
+  total: string;
+}
+
+interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  type: "ORDER" | "PROMO" | "SYSTEM";
+  isRead: boolean;
+  orderId?: number;
+  createdAt: string;
+  order?: Order;
+}
+
+interface NotificationsResponse {
+  success: boolean;
+  message: string;
+  data: Notification[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+  unreadCount: number;
+  timestamp: string;
+}
+
+// ========================================
+// COMPONENTE PRINCIPAL
+// ========================================
 
 export default function NotificationsScreen() {
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#2C2C2C" />
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Notification</Text>
-      </View>
+  // ========================================
+  // CARGAR NOTIFICACIONES
+  // ========================================
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Notifications List */}
-        <View style={styles.notificationsSection}>
-          {/* Notification 1 - Order Update */}
-          <TouchableOpacity style={styles.notificationItem}>
-            <View style={styles.notificationIcon}>
-              <Text style={styles.iconText}>☕</Text>
-            </View>
-            <View style={styles.notificationContent}>
-              <Text style={styles.notificationTitle}>Order Success</Text>
-              <Text style={styles.notificationMessage}>
-                Your order has been placed successfully. Your coffee will be
-                ready in 10-15 minutes.
-              </Text>
-              <Text style={styles.notificationTime}>2 min ago</Text>
-            </View>
-            <View style={styles.notificationDot} />
-          </TouchableOpacity>
+  const loadNotifications = useCallback(async (showLoader = true) => {
+    try {
+      if (showLoader) setLoading(true);
+      setError(null);
 
-          {/* Notification 2 - Promo */}
-          <TouchableOpacity style={styles.notificationItem}>
-            <View style={[styles.notificationIcon, styles.promoIcon]}>
-              <Text style={styles.iconText}>🎉</Text>
-            </View>
-            <View style={styles.notificationContent}>
-              <Text style={styles.notificationTitle}>Special Promo!</Text>
-              <Text style={styles.notificationMessage}>
-                Get 1 FREE coffee when you buy 2 today. Limited time offer!
-              </Text>
-              <Text style={styles.notificationTime}>1 hour ago</Text>
-            </View>
-          </TouchableOpacity>
+      const response = await apiClient.get<NotificationsResponse>(
+        `${API_ENDPOINTS.NOTIFICATIONS}`,
+      );
 
-          {/* Notification 3 - Order Ready */}
-          <TouchableOpacity style={styles.notificationItem}>
-            <View style={[styles.notificationIcon, styles.readyIcon]}>
-              <Text style={styles.iconText}>✅</Text>
-            </View>
-            <View style={styles.notificationContent}>
-              <Text style={styles.notificationTitle}>Order Ready</Text>
-              <Text style={styles.notificationMessage}>
-                Your Cappuccino with Chocolate is ready for pickup at Aula 101.
-              </Text>
-              <Text style={styles.notificationTime}>3 hours ago</Text>
-            </View>
-          </TouchableOpacity>
+      if (response.data?.success && response.data.data) {
+        setNotifications(response.data.data);
+        setUnreadCount(response.data.unreadCount || 0);
+      } else {
+        setError(response.message || "Error al cargar notificaciones");
+      }
+    } catch (err) {
+      console.error("Error loading notifications:", err);
+      setError("Error de conexión al cargar notificaciones");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
-          {/* Notification 4 - Payment Confirmation */}
-          <TouchableOpacity style={styles.notificationItem}>
-            <View style={[styles.notificationIcon, styles.paymentIcon]}>
-              <Text style={styles.iconText}>💳</Text>
-            </View>
-            <View style={styles.notificationContent}>
-              <Text style={styles.notificationTitle}>Payment Confirmed</Text>
-              <Text style={styles.notificationMessage}>
-                Payment of $4.53 has been successfully processed via Yape.
-              </Text>
-              <Text style={styles.notificationTime}>5 hours ago</Text>
-            </View>
-          </TouchableOpacity>
+  // ========================================
+  // MARCAR COMO LEÍDA
+  // ========================================
 
-          {/* Notification 5 - New Menu */}
-          <TouchableOpacity style={styles.notificationItem}>
-            <View style={[styles.notificationIcon, styles.menuIcon]}>
-              <Text style={styles.iconText}>🆕</Text>
-            </View>
-            <View style={styles.notificationContent}>
-              <Text style={styles.notificationTitle}>New Menu Available</Text>
-              <Text style={styles.notificationMessage}>
-                Try our new Matcha Latte and Chai Tea collection now available!
-              </Text>
-              <Text style={styles.notificationTime}>1 day ago</Text>
-            </View>
-          </TouchableOpacity>
+  const markAsRead = async (notificationId: number) => {
+    try {
+      const response = await apiClient.patch(
+        API_ENDPOINTS.MARK_NOTIFICATION_READ(notificationId),
+      );
 
-          {/* Notification 6 - Delivery Update */}
-          <TouchableOpacity style={styles.notificationItem}>
-            <View style={[styles.notificationIcon, styles.deliveryIcon]}>
-              <Text style={styles.iconText}>🚀</Text>
-            </View>
-            <View style={styles.notificationContent}>
-              <Text style={styles.notificationTitle}>Delivery Update</Text>
-              <Text style={styles.notificationMessage}>
-                Your order is on its way to Aula 205. Estimated arrival: 5
-                minutes.
-              </Text>
-              <Text style={styles.notificationTime}>2 days ago</Text>
-            </View>
-          </TouchableOpacity>
+      if (response.success) {
+        // Actualizar estado local
+        setNotifications((prev) =>
+          prev.map((notification) =>
+            notification.id === notificationId
+              ? { ...notification, isRead: true }
+              : notification,
+          ),
+        );
 
-          {/* Notification 7 - Welcome */}
-          <TouchableOpacity style={styles.notificationItem}>
-            <View style={[styles.notificationIcon, styles.welcomeIcon]}>
-              <Text style={styles.iconText}>👋</Text>
-            </View>
-            <View style={styles.notificationContent}>
-              <Text style={styles.notificationTitle}>
-                Welcome to COFFE UCSS!
-              </Text>
-              <Text style={styles.notificationMessage}>
-                Start ordering your favorite coffee and get it delivered to your
-                classroom.
-              </Text>
-              <Text style={styles.notificationTime}>3 days ago</Text>
-            </View>
+        // Reducir contador de no leídas
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (err) {
+      console.error("Error marking as read:", err);
+    }
+  };
+
+  // ========================================
+  // MARCAR TODAS COMO LEÍDAS
+  // ========================================
+
+  const markAllAsRead = async () => {
+    try {
+      const response = await apiClient.patch(API_ENDPOINTS.MARK_ALL_READ);
+
+      if (response.success) {
+        setNotifications((prev) =>
+          prev.map((notification) => ({ ...notification, isRead: true })),
+        );
+        setUnreadCount(0);
+      }
+    } catch (err) {
+      console.error("Error marking all as read:", err);
+      Alert.alert("Error", "No se pudieron marcar todas las notificaciones");
+    }
+  };
+
+  // ========================================
+  // ELIMINAR NOTIFICACIÓN
+  // ========================================
+
+  const deleteNotification = async (notificationId: number) => {
+    Alert.alert(
+      "Eliminar notificación",
+      "¿Estás seguro de que quieres eliminar esta notificación?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const response = await apiClient.delete(
+                `${API_ENDPOINTS.NOTIFICATIONS}/${notificationId}`,
+              );
+
+              if (response.success) {
+                setNotifications((prev) =>
+                  prev.filter(
+                    (notification) => notification.id !== notificationId,
+                  ),
+                );
+
+                // Si era no leída, reducir contador
+                const notification = notifications.find(
+                  (n) => n.id === notificationId,
+                );
+                if (notification && !notification.isRead) {
+                  setUnreadCount((prev) => Math.max(0, prev - 1));
+                }
+              }
+            } catch (err) {
+              console.error("Error deleting notification:", err);
+              Alert.alert("Error", "No se pudo eliminar la notificación");
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // ========================================
+  // NAVEGAR A PEDIDO
+  // ========================================
+
+  const navigateToOrder = (orderId: number) => {
+    // TODO: Implementar cuando tengas la pantalla de detalles de pedido
+    router.push(`/order/${orderId}`);
+  };
+
+  // ========================================
+  // PULL TO REFRESH
+  // ========================================
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadNotifications(false);
+  }, [loadNotifications]);
+
+  // ========================================
+  // AUTO-REFRESH CADA 30 SEGUNDOS
+  // ========================================
+
+  useEffect(() => {
+    loadNotifications();
+
+    const interval = setInterval(() => {
+      loadNotifications(false);
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(interval);
+  }, [loadNotifications]);
+
+  // ========================================
+  // HELPERS PARA UI
+  // ========================================
+
+  const getNotificationIcon = (type: Notification["type"]) => {
+    switch (type) {
+      case "ORDER":
+        return "cafe-outline";
+      case "PROMO":
+        return "pricetag-outline";
+      case "SYSTEM":
+        return "settings-outline";
+      default:
+        return "notifications-outline";
+    }
+  };
+
+  const getNotificationColor = (type: Notification["type"]) => {
+    switch (type) {
+      case "ORDER":
+        return "#8B4513"; // Café
+      case "PROMO":
+        return "#FF6B35"; // Naranja
+      case "SYSTEM":
+        return "#4A90E2"; // Azul
+      default:
+        return "#666";
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor(diffInHours * 60);
+      return `Hace ${diffInMinutes}m`;
+    } else if (diffInHours < 24) {
+      return `Hace ${Math.floor(diffInHours)}h`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `Hace ${diffInDays}d`;
+    }
+  };
+
+  // ========================================
+  // RENDER
+  // ========================================
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#8B4513" />
+          <Text style={styles.loadingText}>Cargando notificaciones...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
+          <Text style={styles.errorTitle}>Error al cargar</Text>
+          <Text style={styles.errorMessage}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => loadNotifications()}
+          >
+            <Text style={styles.retryButtonText}>Reintentar</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.headerTitle}>Notificaciones</Text>
+            {unreadCount > 0 && (
+              <Text style={styles.unreadText}>{unreadCount} sin leer</Text>
+            )}
+          </View>
+
+          {notifications.length > 0 && unreadCount > 0 && (
+            <TouchableOpacity
+              onPress={markAllAsRead}
+              style={styles.markAllButton}
+            >
+              <Text style={styles.markAllButtonText}>Marcar todas</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Lista de notificaciones */}
+      {notifications.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="notifications-outline" size={64} color="#9CA3AF" />
+          <Text style={styles.emptyTitle}>No hay notificaciones</Text>
+          <Text style={styles.emptyMessage}>
+            Cuando tengas pedidos o promociones aparecerán aquí
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#8B4513"
+            />
+          }
+        >
+          {notifications.map((notification) => (
+            <Pressable
+              key={notification.id}
+              style={[
+                styles.notificationCard,
+                notification.isRead ? styles.readCard : styles.unreadCard,
+              ]}
+              onPress={() => {
+                if (!notification.isRead) {
+                  markAsRead(notification.id);
+                }
+                if (notification.orderId) {
+                  navigateToOrder(notification.orderId);
+                }
+              }}
+            >
+              <View style={styles.cardContent}>
+                <View style={styles.cardRow}>
+                  {/* Icono del tipo */}
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      {
+                        backgroundColor: `${getNotificationColor(notification.type)}20`,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={getNotificationIcon(notification.type) as any}
+                      size={20}
+                      color={getNotificationColor(notification.type)}
+                    />
+                  </View>
+
+                  {/* Contenido */}
+                  <View style={styles.contentContainer}>
+                    <View style={styles.titleRow}>
+                      <Text
+                        style={[
+                          styles.notificationTitle,
+                          notification.isRead && styles.readText,
+                        ]}
+                      >
+                        {notification.title}
+                      </Text>
+
+                      {/* Badge no leída */}
+                      {!notification.isRead && (
+                        <View style={styles.unreadBadge} />
+                      )}
+                    </View>
+
+                    <Text
+                      style={[
+                        styles.notificationMessage,
+                        notification.isRead && styles.readText,
+                      ]}
+                    >
+                      {notification.message}
+                    </Text>
+
+                    {/* Info del pedido si existe */}
+                    {notification.order && (
+                      <View style={styles.orderInfo}>
+                        <Text style={styles.orderText}>
+                          Pedido #{notification.order.id} •{" "}
+                          {notification.order.status} • S/{" "}
+                          {notification.order.total}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Footer */}
+                    <View style={styles.footer}>
+                      <Text style={styles.timeText}>
+                        {formatTime(notification.createdAt)}
+                      </Text>
+
+                      <TouchableOpacity
+                        onPress={() => deleteNotification(notification.id)}
+                        style={styles.deleteButton}
+                      >
+                        <Ionicons
+                          name="trash-outline"
+                          size={16}
+                          color="#EF4444"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </Pressable>
+          ))}
+
+          {/* Espacio extra al final */}
+          <View style={styles.bottomSpacing} />
+        </ScrollView>
+      )}
+    </SafeAreaView>
   );
 }
+
+// ========================================
+// ESTILOS
+// ========================================
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#2C2C2C",
+    backgroundColor: "#F9FAFB",
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  headerTitle: {
-    color: "#FFF",
+  loadingText: {
+    marginTop: 16,
+    color: "#6B7280",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  errorTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "600",
+    color: "#111827",
+    marginTop: 16,
     textAlign: "center",
   },
-  content: {
+  errorMessage: {
+    color: "#6B7280",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: "#D97706",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 24,
+  },
+  retryButtonText: {
+    color: "white",
+    fontWeight: "600",
+  },
+  header: {
+    backgroundColor: "white",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#111827",
+  },
+  unreadText: {
+    fontSize: 14,
+    color: "#D97706",
+    marginTop: 4,
+  },
+  markAllButton: {
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  markAllButtonText: {
+    color: "#92400E",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  emptyContainer: {
     flex: 1,
-    paddingHorizontal: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
   },
-
-  // Notifications Section
-  notificationsSection: {
-    paddingBottom: 20,
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+    marginTop: 16,
   },
-  notificationItem: {
+  emptyMessage: {
+    color: "#6B7280",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  notificationCard: {
+    backgroundColor: "white",
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    borderWidth: 1,
+  },
+  readCard: {
+    borderColor: "#E5E7EB",
+  },
+  unreadCard: {
+    borderColor: "#FDE68A",
+    backgroundColor: "#FFFBEB",
+  },
+  cardContent: {
+    padding: 16,
+  },
+  cardRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: "#3C3C3C",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    position: "relative",
   },
-  notificationIcon: {
+  iconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#D2691E",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
-  promoIcon: {
-    backgroundColor: "#FF6B6B",
-  },
-  readyIcon: {
-    backgroundColor: "#32CD32",
-  },
-  paymentIcon: {
-    backgroundColor: "#4A90E2",
-  },
-  menuIcon: {
-    backgroundColor: "#9B59B6",
-  },
-  deliveryIcon: {
-    backgroundColor: "#F39C12",
-  },
-  welcomeIcon: {
-    backgroundColor: "#E67E22",
-  },
-  iconText: {
-    fontSize: 18,
-  },
-  notificationContent: {
+  contentContainer: {
     flex: 1,
   },
+  titleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
   notificationTitle: {
-    color: "#FFF",
-    fontSize: 14,
-    fontWeight: "bold",
-    marginBottom: 4,
+    fontWeight: "600",
+    color: "#111827",
+    flex: 1,
   },
-  notificationMessage: {
-    color: "#CCC",
-    fontSize: 12,
-    lineHeight: 16,
-    marginBottom: 8,
+  readText: {
+    opacity: 0.7,
   },
-  notificationTime: {
-    color: "#888",
-    fontSize: 10,
-  },
-  notificationDot: {
+  unreadBadge: {
     width: 8,
     height: 8,
+    backgroundColor: "#F59E0B",
     borderRadius: 4,
-    backgroundColor: "#D2691E",
-    position: "absolute",
-    top: 16,
-    right: 16,
+    marginLeft: 8,
+    marginTop: 4,
+  },
+  notificationMessage: {
+    color: "#6B7280",
+    marginTop: 4,
+  },
+  orderInfo: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 8,
+  },
+  orderText: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+  },
+  timeText: {
+    fontSize: 12,
+    color: "#9CA3AF",
+  },
+  deleteButton: {
+    padding: 8,
+  },
+  bottomSpacing: {
+    height: 24,
   },
 });

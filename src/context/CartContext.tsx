@@ -188,8 +188,12 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       // 3. Verificar si el producto ya existe en el carrito
       // Por ahora, la lógica es simple: si el producto (por ID) ya está, se actualiza la cantidad.
       // TODO: Mejorar para manejar personalizaciones distintas como items separados.
-      const existingItem = items.find((item) => item.productId === productId);
-
+      const existingItem = items.find(
+        (item) =>
+          item.productId === productId &&
+          JSON.stringify(item.customizations) ===
+            JSON.stringify(customizations),
+      );
       if (existingItem) {
         // --- ACTUALIZAR CANTIDAD ---
         console.log(`✅ Product ${productId} exists. Updating quantity.`);
@@ -212,7 +216,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         const subtotal = unitPrice * quantity;
 
         const newItem: CartItem = {
-          id: `${productId}_${Date.now()}`, // ID más simple
+          id: `${productId}_${JSON.stringify(customizations)}_${Date.now()}`, // ID si son productos diferentes
           productId: product.id,
           productName: product.name,
           productDescription:

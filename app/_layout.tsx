@@ -88,6 +88,15 @@ function RootLayoutNav() {
           }}
         />
         <Stack.Screen
+          name="product/[id]"
+          options={{
+            presentation: "modal",
+            headerShown: false,
+            gestureEnabled: true,
+            animationDuration: 300,
+          }}
+        />
+        <Stack.Screen
           name="product"
           options={{
             headerShown: false,
