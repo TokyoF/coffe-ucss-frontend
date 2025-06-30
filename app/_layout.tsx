@@ -14,7 +14,7 @@ import "react-native-reanimated";
 // ✅ IMPORTAR CONTEXTOS
 import { AuthProvider } from "../src/context/AuthContext";
 import { CartProvider } from "../src/context/CartContext"; // ✅ NUEVO
-
+import { FavoritesProvider } from "@/src/context/FavoriteContext";
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
@@ -50,7 +50,9 @@ export default function RootLayout() {
     // ✅ WRAPPER CON AMBOS PROVIDERS - AuthProvider envuelve CartProvider
     <AuthProvider>
       <CartProvider>
-        <RootLayoutNav />
+        <FavoritesProvider>
+          <RootLayoutNav />
+        </FavoritesProvider>
       </CartProvider>
     </AuthProvider>
   );

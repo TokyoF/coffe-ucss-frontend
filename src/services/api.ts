@@ -42,6 +42,12 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: "/api/notifications",
   MARK_NOTIFICATION_READ: (id: number) => `/api/notifications/${id}/read`,
   MARK_ALL_READ: "/api/notifications/mark-all-read",
+  // Favorites
+
+  FAVORITES: "/api/favorites",
+  ADD_FAVORITE: "/api/favorites",
+  REMOVE_FAVORITE: (productId: number) => `/api/favorites/${productId}`,
+  CHECK_FAVORITE: (productId: number) => `/api/favorites/check/${productId}`,
 } as const;
 
 // ========================================

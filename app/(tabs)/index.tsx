@@ -1,4 +1,4 @@
-// app/(tabs)/index.tsx - Dashboard Principal Conectado con Backend y Carrito
+// app/(tabs)/index.tsx - Dashboard Principal Conectado con Backend, Carrito y Favoritos
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -18,9 +18,9 @@ import { Image } from "expo-image";
 
 // ✅ IMPORTAR servicios y contextos
 import { useAuth } from "../../src/context/AuthContext";
-import { useCart } from "../../src/context/CartContext"; // ✅ NUEVO
+import { useCart } from "../../src/context/CartContext";
 import { apiClient, API_ENDPOINTS } from "../../src/services/api";
-
+import { useFavorites } from "@/src/context/FavoriteContext";
 // ========================================
 // TIPOS DE DATOS
 // ========================================
@@ -55,18 +55,29 @@ interface Category {
   products: Product[];
 }
 
+interface FavoriteResponse {
+  success: boolean;
+  message: string;
+  data?: any;
+  timestamp: string;
+}
+
 export default function DashboardScreen() {
   // ========================================
   // ESTADO Y HOOKS
   // ========================================
 
   const { user, isAuthenticated } = useAuth();
-  const { addItem, getItemQuantity, summary } = useCart(); // ✅ NUEVO
+  const { addItem, getItemQuantity, summary } = useCart();
 
   // Estados de datos
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [loadingFavorites, setLoadingFavorites] = useState<Set<number>>(
+    new Set(),
+  );
 
   // Estados de UI
   const [isLoading, setIsLoading] = useState(true);
@@ -97,7 +108,11 @@ export default function DashboardScreen() {
       console.log("🔄 Loading dashboard data...");
       setIsLoading(true);
 
-      await Promise.all([loadProducts(), loadCategories()]);
+      await Promise.all([
+        loadProducts(),
+        loadCategories(),
+        loadUserFavorites(),
+      ]);
 
       console.log("✅ Dashboard data loaded successfully");
     } catch (error) {
@@ -105,6 +120,23 @@ export default function DashboardScreen() {
       Alert.alert("Error", "No se pudo cargar la información");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadUserFavorites = async () => {
+    try {
+      console.log("❤️ Loading user favorites...");
+      const response = await apiClient.get<any>(API_ENDPOINTS.FAVORITES);
+
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        const favoriteProductIds = response.data.data.map(
+          (fav: any) => fav.product.id,
+        );
+        setFavoriteIds(new Set(favoriteProductIds));
+        console.log(`✅ Loaded ${favoriteProductIds.length} favorites`);
+      }
+    } catch (error) {
+      console.error("❌ Error loading favorites:", error);
     }
   };
 
@@ -157,6 +189,69 @@ export default function DashboardScreen() {
   };
 
   // ========================================
+  // FUNCIONES DE FAVORITOS
+  // ========================================
+
+  const toggleFavorite = async (productId: number, productName: string) => {
+    const isCurrentlyFavorite = favoriteIds.has(productId);
+
+    // Mostrar loading en el botón específico
+    setLoadingFavorites((prev) => new Set([...prev, productId]));
+
+    try {
+      if (isCurrentlyFavorite) {
+        // Quitar de favoritos
+        const response = await apiClient.delete<FavoriteResponse>(
+          API_ENDPOINTS.REMOVE_FAVORITE(productId),
+        );
+
+        if (response.data?.success) {
+          setFavoriteIds((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(productId);
+            return newSet;
+          });
+
+          // Mostrar feedback visual sutil
+          console.log(`❤️ Removed ${productName} from favorites`);
+        } else {
+          Alert.alert(
+            "Error",
+            response.data?.message || "No se pudo quitar de favoritos",
+          );
+        }
+      } else {
+        // Agregar a favoritos
+        const response = await apiClient.post<FavoriteResponse>(
+          API_ENDPOINTS.ADD_FAVORITE,
+          { productId },
+        );
+
+        if (response.data?.success) {
+          setFavoriteIds((prev) => new Set([...prev, productId]));
+
+          // Mostrar feedback visual sutil
+          console.log(`❤️ Added ${productName} to favorites`);
+        } else {
+          Alert.alert(
+            "Error",
+            response.data?.message || "No se pudo agregar a favoritos",
+          );
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error toggling favorite:", error);
+      Alert.alert("Error", "No se pudo actualizar favoritos");
+    } finally {
+      setLoadingFavorites((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    }
+  };
+
+  // ========================================
   // FUNCIONES DE FILTRADO
   // ========================================
 
@@ -204,33 +299,6 @@ export default function DashboardScreen() {
     router.push(`/product/${productId}`);
   };
 
-  // ✅ NUEVA FUNCIÓN: Agregar al carrito con Context
-  // const handleAddToCart = async (product: Product) => {
-  //   try {
-  //     console.log("🛒 Adding to cart:", product.name);
-  //
-  //     const success = await addItem(product.id, 1);
-  //
-  //     if (success) {
-  //       Alert.alert(
-  //         "Agregado al carrito",
-  //         `${product.name} se agregó exitosamente`,
-  //         [
-  //           { text: "Continuar", style: "default" },
-  //           {
-  //             text: "Ver carrito",
-  //             style: "default",
-  //             onPress: () => router.push("/(tabs)/cart"),
-  //           },
-  //         ],
-  //       );
-  //     }
-  //   } catch (error) {
-  //     console.error("❌ Error adding to cart:", error);
-  //     Alert.alert("Error", "No se pudo agregar el producto al carrito");
-  //   }
-  // };
-
   // ========================================
   // FUNCIONES DE UTILIDAD
   // ========================================
@@ -256,11 +324,6 @@ export default function DashboardScreen() {
     style: any;
   }) => {
     const [imageError, setImageError] = useState(false);
-
-    // ✅ USAR IMAGEN LOCAL por problema de red del emulador
-    // const imageSource = require("../../assets/images/cafe-mocaccino.jpg");
-
-    // 🔄 FUTURO: Cuando tengas internet, descomenta esto:
 
     const imageSource =
       imageError || !product.imageUrl
@@ -343,7 +406,7 @@ export default function DashboardScreen() {
           <Text style={styles.locationText}>{getLocationText()}</Text>
         </View>
 
-        {/* ✅ NUEVO: Header Actions con Carrito */}
+        {/* Header Actions con Carrito */}
         <View style={styles.headerActions}>
           {/* Cart Badge */}
           <TouchableOpacity
@@ -492,11 +555,42 @@ export default function DashboardScreen() {
                         onPress={() => handleProductPress(product.id)}
                         activeOpacity={0.8}
                       >
-                        <View style={styles.ratingContainer}>
-                          <Ionicons name="star" size={14} color="#FFD700" />
-                          <Text style={styles.ratingText}>
-                            {parseFloat(product.rating).toFixed(1)}
-                          </Text>
+                        {/* ❤️ MODIFICADO: Header con rating y favorito */}
+                        <View style={styles.productHeader}>
+                          <View style={styles.ratingContainer}>
+                            <Ionicons name="star" size={14} color="#FFD700" />
+                            <Text style={styles.ratingText}>
+                              {parseFloat(product.rating).toFixed(1)}
+                            </Text>
+                          </View>
+
+                          {/* ❤️ NUEVO: Botón de favorito */}
+                          <TouchableOpacity
+                            style={styles.favoriteButton}
+                            onPress={(e) => {
+                              e.stopPropagation(); // Evitar que abra el producto
+                              toggleFavorite(product.id, product.name);
+                            }}
+                            disabled={loadingFavorites.has(product.id)}
+                          >
+                            {loadingFavorites.has(product.id) ? (
+                              <ActivityIndicator size="small" color="#FF6B6B" />
+                            ) : (
+                              <Ionicons
+                                name={
+                                  favoriteIds.has(product.id)
+                                    ? "heart"
+                                    : "heart-outline"
+                                }
+                                size={18}
+                                color={
+                                  favoriteIds.has(product.id)
+                                    ? "#FF6B6B"
+                                    : "#888"
+                                }
+                              />
+                            )}
+                          </TouchableOpacity>
                         </View>
 
                         <ProductImage
@@ -511,7 +605,7 @@ export default function DashboardScreen() {
                           {product.description || product.category.name}
                         </Text>
 
-                        {/* ✅ NUEVO: Footer con indicador de carrito */}
+                        {/* Footer con precio y carrito */}
                         <View style={styles.productFooter}>
                           <Text style={styles.productPrice}>
                             {formatPrice(product.price)}
@@ -562,7 +656,7 @@ export default function DashboardScreen() {
 }
 
 // ========================================
-// ESTILOS (MANTENIENDO LOS ORIGINALES + NUEVOS)
+// ESTILOS
 // ========================================
 
 const styles = StyleSheet.create({
@@ -596,7 +690,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // ✅ NUEVOS: Header Actions
+  // Header Actions
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
@@ -767,10 +861,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+
+  // ❤️ NUEVO: Product Header con favoritos
+  productHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
   ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
   },
   ratingText: {
     color: "#FFF",
@@ -778,6 +879,15 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontWeight: "500",
   },
+  favoriteButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   productImage: {
     width: "100%",
     height: 120,
@@ -806,7 +916,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  // ✅ NUEVOS: Add Button con indicador
+  // Add Button con indicador
   addButton: {
     width: 32,
     height: 32,

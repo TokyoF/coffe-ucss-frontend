@@ -9,7 +9,7 @@ export const STORAGE_KEYS = {
   REFRESH_TOKEN: "coffe_ucss_refresh_token",
   USER_DATA: "coffe_ucss_user_data",
   CART_ITEMS: "coffe_ucss_cart_items",
-  FAVORITES: "coffe_ucss_favorites",
+  FAVORITE_IDS: "favorite_ids", // ← AGREGAR ESTA LÍNEA
 } as const;
 
 // ========================================
